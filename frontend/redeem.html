@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kassir — QR Code Skaner va Redeem</title>
+    <link rel="stylesheet" href="/app/css/style.css">
+    <!-- html5-qrcode library for camera integration -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <header>
+        <a href="/app/redeem.html" class="logo-brand">
+            📷 Kassir Terminali — QR Redeem
+        </a>
+        <div class="nav-links">
+            <a href="/app/index.html" class="btn btn-outline">🏠 Bosh Sahifa</a>
+            <a href="/app/admin.html" class="btn btn-outline">📊 Admin</a>
+        </div>
+    </header>
+
+    <main class="container" style="max-width: 600px;">
+        <div class="card">
+            <h2 class="card-title" style="text-align: center;">Mijoz QR-kodini Skanerlash</h2>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Brauzer kamerasidan foydalaning yoki QR kodi tokenini qo'lda kiriting.
+            </p>
+
+            <!-- Camera Scanner Area -->
+            <div id="reader-container" style="margin-bottom: 1.5rem;">
+                <div id="reader" style="width: 100%; min-height: 250px; background: #f1f5f9; border-radius: 8px; border: 2px dashed var(--border-color);"></div>
+                <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                    <button class="btn btn-primary" onclick="startCamera()">📷 Kamerani yoqish</button>
+                    <button class="btn btn-outline" onclick="stopCamera()">🛑 To'xtatish</button>
+                </div>
+            </div>
+
+            <!-- Manual Token Input (Alternative) -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                <label style="font-weight: 600; font-size: 0.85rem;">Yoki QR Tokenini Qo'lda Kiriting:</label>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.375rem;">
+                    <input type="text" id="manual-code-input" class="form-control" placeholder="masalan: HAMKOR-QR-101">
+                    <button type="button" class="btn btn-secondary" onclick="verifyManualCode()">Tekshirish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Result & Redeem Form -->
+        <div id="result-card" class="card" style="display: none;">
+            <div id="status-banner" style="padding: 0.75rem; border-radius: 8px; font-weight: 600; margin-bottom: 1rem; text-align: center;"></div>
+
+            <div id="coupon-details" style="display: none; margin-bottom: 1.25rem; font-size: 0.95rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div>Xodim Ismi: <strong id="res-emp-name">...</strong></div>
+                    <div>Partner: <strong id="res-partner">...</strong></div>
+                    <div>Chegirma: <strong id="res-discount" style="color:var(--primary); font-size:1.1rem;">...</strong></div>
+                    <div>Qolgan ishlatish: <strong id="res-usage">...</strong></div>
+                </div>
+
+                <!-- Transaction Confirmation Form -->
+                <form id="confirm-txn-form">
+                    <input type="hidden" id="verified-code">
+                    <div class="form-group">
+                        <label>Chek / Tranzaksiya Umumiy Summasi (So'm)</label>
+                        <input type="number" id="txn-amount" class="form-control" placeholder="masalan: 150000" step="100" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kassir Ismi / Izoh (Note)</label>
+                        <input type="text" id="txn-note" class="form-control" placeholder="Kassir Javohir">
+                    </div>
+                    <button type="submit" class="btn btn-success" style="width: 100%; font-size: 1.05rem;">✅ Chegirmani Qo'llash va Tasdiqlash</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        B2B2C Marketplace &copy; 2025 Kassir Terminali
+    </footer>
+
+    <script src="/app/js/api.js"></script>
+    <script src="/app/js/scanner.js"></script>
+    <script>
+        async function checkCode(code) {
+            if (!code) return;
+            document.getElementById('verified-code').value = code;
+
+            try {
+                const res = await api.verifyCode(code);
+                const resultCard = document.getElementById('result-card');
+                const banner = document.getElementById('status-banner');
+                const details = document.getElementById('coupon-details');
+
+                resultCard.style.display = 'block';
+
+                if (res.valid) {
+                    banner.style.background = '#d1fae5';
+                    banner.style.color = '#065f46';
+                    banner.innerText = `✅ ${res.message}`;
+
+                    document.getElementById('res-emp-name').innerText = res.employee_name;
+                    document.getElementById('res-partner').innerText = res.partner_name;
+                    document.getElementById('res-discount').innerText = res.discount_value;
+                    document.getElementById('res-usage').innerText = `${res.remaining_usage} marta`;
+
+                    details.style.display = 'block';
+                } else {
+                    banner.style.background = '#fee2e2';
+                    banner.style.color = '#991b1b';
+                    banner.innerText = `❌ ${res.message}`;
+                    details.style.display = 'none';
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function verifyManualCode() {
+            const code = document.getElementById('manual-code-input').value.trim();
+            if (!code) return alert("Iltimos QR tokenini kiriting");
+            checkCode(code);
+        }
+
+        document.getElementById('confirm-txn-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('verified-code').value;
+            const amount = document.getElementById('txn-amount').value;
+            const note = document.getElementById('txn-note').value;
+
+            try {
+                const txn = await api.confirmRedeem(code, amount, note);
+                alert(`Muvaffaqiyatli! Tranzaksiya #${txn.id}\nSumma: ${txn.amount.toLocaleString()} so'm\n2% Komissiya: ${txn.commission_amount.toLocaleString()} so'm`);
+
+                // Reset form
+                document.getElementById('result-card').style.display = 'none';
+                document.getElementById('manual-code-input').value = '';
+                document.getElementById('txn-amount').value = '';
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        function startCamera() {
+            initQrScanner((scannedText) => {
+                stopCamera();
+                document.getElementById('manual-code-input').value = scannedText;
+                checkCode(scannedText);
+            });
+        }
+
+        function stopCamera() {
+            stopQrScanner();
+        }
+    </script>
+</body>
+</html>
