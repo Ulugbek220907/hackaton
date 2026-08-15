@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provider Dashboard — B2B2C Platform</title>
+    <link rel="stylesheet" href="/app/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/app/provider-dashboard.html" class="logo-brand">
+            🏢 Provider Panel — <span id="company-name-header">...</span>
+        </a>
+        <div class="nav-links">
+            <a href="/app/redeem.html" class="btn btn-outline">📷 QR Skaner</a>
+            <a href="/app/admin.html" class="btn btn-outline">📊 Admin</a>
+            <button id="logout-btn" class="btn btn-danger">Chiqish</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Mening Yuborgan Offerlarim</h2>
+            <button class="btn btn-primary" onclick="openNewOfferModal()">+ Yangi Offer Yaratish</button>
+        </div>
+
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Sarlavha</th>
+                        <th>Chegirma</th>
+                        <th>Maqsadli Partner</th>
+                        <th>Muddati</th>
+                        <th>Max ishlatish</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="offers-table-body">
+                    <tr><td colspan="7" style="text-align: center;">Yuklanmoqda...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h3>Mening Aktiv Hamkorliklarim (Accepted Partnerships)</h3>
+            <div class="card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Partnership ID</th>
+                            <th>Offer Nomi</th>
+                            <th>Partner Kompaniya</th>
+                            <th>Komissiya To'lovchi</th>
+                            <th>Qabul qilingan vaqt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partnerships-table-body">
+                        <tr><td colspan="5" style="text-align: center;">Yuklanmoqda...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: New Offer -->
+    <div class="modal-overlay" id="offer-modal">
+        <div class="modal">
+            <h3 class="card-title">Yangi Offer (Taklif) Yaratish</h3>
+            <form id="create-offer-form">
+                <div class="form-group">
+                    <label>Offer Sarlavhasi</label>
+                    <input type="text" id="offer-title" class="form-control" required placeholder="Masalan: 20% Chegirma Kofe va Desertlarga">
+                </div>
+                <div class="form-group">
+                    <label>Tavsif (Description)</label>
+                    <textarea id="offer-desc" class="form-control" rows="3" placeholder="Taklif shartlari va batafsil ma'lumot"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Chegirma Turi</label>
+                        <select id="offer-type" class="form-control">
+                            <option value="percent">Foiz (%)</option>
+                            <option value="fixed">Aniq Summa (so'm)</option>
+                            <option value="custom">Maxsus (Custom)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Chegirma Qiymati</label>
+                        <input type="text" id="offer-value" class="form-control" required placeholder="Masalan: 20% yoki 50,000 so'm">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Boshlanish Sanasi</label>
+                        <input type="date" id="offer-from" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tugash Sanasi</label>
+                        <input type="date" id="offer-until" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Bitta xodimga max ishlatish soni</label>
+                    <input type="number" id="offer-max-usage" class="form-control" value="1" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Maqsadli Partner (Ixtiyoriy — tanlanmasa barchaga yuboriladi)</label>
+                    <select id="offer-partner-select" class="form-control">
+                        <option value="">Barcha Partnerlar (Umumiy e'lon)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeOfferModal()">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary">Yuborish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        B2B2C Marketplace &copy; 2025 Provider Dashboard
+    </footer>
+
+    <script src="/app/js/api.js"></script>
+    <script>
+        let currentCompany = null;
+
+        async function init() {
+            try {
+                currentCompany = await api.getMe();
+                document.getElementById('company-name-header').innerText = currentCompany.name;
+
+                // Set default dates
+                const today = new Date().toISOString().split('T')[0];
+                const nextMonth = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+                document.getElementById('offer-from').value = today;
+                document.getElementById('offer-until').value = nextMonth;
+
+                await loadOffers();
+                await loadPartnerships();
+                await loadPartnersList();
+            } catch (err) {
+                alert(err.message);
+                window.location.href = '/app/index.html';
+            }
+        }
+
+        async function loadOffers() {
+            const offers = await api.getSentOffers();
+            const tbody = document.getElementById('offers-table-body');
+            if (offers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Hozircha offerlar yo'q</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = offers.map(o => `
+                <tr>
+                    <td>#${o.id}</td>
+                    <td><strong>${o.title}</strong></td>
+                    <td>${o.discount_value}</td>
+                    <td>${o.target_partner_name || 'Barchaga'}</td>
+                    <td>${o.valid_from} ~ ${o.valid_until}</td>
+                    <td>${o.max_usage_per_code} marta</td>
+                    <td><span class="badge-status badge-${o.status}">${o.status.toUpperCase()}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadPartnerships() {
+            const partnerships = await api.getMyPartnerships();
+            const tbody = document.getElementById('partnerships-table-body');
+            const accepted = partnerships.filter(p => p.status === 'accepted');
+            if (accepted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Aktiv accepted hamkorliklar yo'q</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = accepted.map(p => `
+                <tr>
+                    <td>#${p.id}</td>
+                    <td>${p.offer_title}</td>
+                    <td><strong>${p.partner_name}</strong></td>
+                    <td>${p.commission_payer.toUpperCase()}</td>
+                    <td>${new Date(p.responded_at || p.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadPartnersList() {
+            const partners = await api.getPartners();
+            const select = document.getElementById('offer-partner-select');
+            partners.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = `${p.name} (${p.email})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function openNewOfferModal() {
+            document.getElementById('offer-modal').classList.add('active');
+        }
+
+        function closeOfferModal() {
+            document.getElementById('offer-modal').classList.remove('active');
+        }
+
+        document.getElementById('create-offer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const targetVal = document.getElementById('offer-partner-select').value;
+            const offerData = {
+                title: document.getElementById('offer-title').value,
+                description: document.getElementById('offer-desc').value,
+                discount_type: document.getElementById('offer-type').value,
+                discount_value: document.getElementById('offer-value').value,
+                valid_from: document.getElementById('offer-from').value,
+                valid_until: document.getElementById('offer-until').value,
+                max_usage_per_code: parseInt(document.getElementById('offer-max-usage').value),
+                target_partner_id: targetVal ? parseInt(targetVal) : null
+            };
+
+            try {
+                await api.createOffer(offerData);
+                closeOfferModal();
+                await loadOffers();
+                alert("Offer muvaffaqiyatli yaratildi va yuborildi!");
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/app/index.html';
+        });
+
+        init();
+    </script>
+</body>
+</html>

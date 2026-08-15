@@ -1,0 +1,21 @@
+services:
+  # FastAPI Web Service
+  - type: web
+    name: discount-platform
+    env: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "python -m backend.seed && uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: discount-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  # PostgreSQL Managed Database
+  - name: discount-db
+    databaseName: discount_platform
+    user: discount_user
+    plan: starter

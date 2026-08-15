@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Platforma Statistikasi</title>
+    <link rel="stylesheet" href="/app/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/app/admin.html" class="logo-brand">
+            📊 Platforma Admin Statistikasi
+        </a>
+        <div class="nav-links">
+            <a href="/app/index.html" class="btn btn-outline">🏠 Kirish / Dashboard</a>
+            <a href="/app/redeem.html" class="btn btn-outline">📷 Kassir (Scanner)</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Umumiy Hackathon Platforma Ko'rsatkichlari</h2>
+            <button class="btn btn-secondary" onclick="loadStats()">🔄 Yangilash (Refresh)</button>
+        </div>
+
+        <!-- Key Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="label">Jami Kompaniyalar</span>
+                <span class="value" id="stat-companies">0</span>
+                <span class="badge" id="stat-providers-partners">0 Providers | 0 Partners</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Jami Offerlar</span>
+                <span class="value" id="stat-offers">0</span>
+                <span class="badge">E'lon qilingan takliflar</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Aktiv Hamkorliklar</span>
+                <span class="value" id="stat-partnerships">0</span>
+                <span class="badge" style="background:#d1fae5; color:#065f46;">Accepted Partnerships</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Generatsiya qilingan QR-kodlar</span>
+                <span class="value" id="stat-codes">0</span>
+                <span class="badge">Xodimlar kodi</span>
+            </div>
+        </div>
+
+        <!-- Monetization & Financial Metrics -->
+        <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; border: none;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: white;">💰 Monetizatsiya va Komissiya Modeli (2%)</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.85;">Jami Tranzaksiyalar Soni</div>
+                    <div style="font-size: 2rem; font-weight: 800; margin-top: 0.25rem;" id="stat-transactions">0</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.85;">Jami Oborot / GMV (Gross Merchandise Value)</div>
+                    <div style="font-size: 2rem; font-weight: 800; margin-top: 0.25rem;" id="stat-gmv">0 so'm</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.85;">Platforma Daromadi (2% Commission)</div>
+                    <div style="font-size: 2rem; font-weight: 800; margin-top: 0.25rem; color: #4ade80;" id="stat-commission">0 so'm</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info / Explanation Card -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <h3 class="card-title">💡 Platforma Biznes Modeli Qanday Ishlaydi?</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                B2B2C marketplace modelida Provider (masalan restoran) va Partner (masalan bank) kompaniyalar o'zaro shartnoma tuzishadi. Partner o'z xodimlariga unique QR-kod tarqatadi. Xodim xarid qilganda kassir QR-kodni skanerlab chek summasini kiritadi.
+                Platforma har bir xariddan <strong>avtomatik 2% komissiya</strong> hisoblaydi. Bu hackathon MVP jonli statistika paneli orqali platformaning moliyaviy barqarorligi va monetizatsiyasini isbotlaydi.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        B2B2C Marketplace &copy; 2025 Admin Analytics Dashboard
+    </footer>
+
+    <script src="/app/js/api.js"></script>
+    <script>
+        async function loadStats() {
+            try {
+                const stats = await api.getAdminStats();
+                document.getElementById('stat-companies').innerText = stats.total_companies;
+                document.getElementById('stat-providers-partners').innerText = `${stats.total_providers} Provider | ${stats.total_partners} Partner`;
+                document.getElementById('stat-offers').innerText = stats.total_offers;
+                document.getElementById('stat-partnerships').innerText = stats.total_accepted_partnerships;
+                document.getElementById('stat-codes').innerText = stats.total_employee_codes;
+
+                document.getElementById('stat-transactions').innerText = stats.total_transactions;
+                document.getElementById('stat-gmv').innerText = `${stats.total_gmv.toLocaleString()} so'm`;
+                document.getElementById('stat-commission').innerText = `${stats.total_commission_earned.toLocaleString()} so'm`;
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

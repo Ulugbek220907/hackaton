@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner Dashboard — B2B2C Platform</title>
+    <link rel="stylesheet" href="/app/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/app/partner-dashboard.html" class="logo-brand">
+            🏛️ Partner Panel — <span id="company-name-header">...</span>
+        </a>
+        <div class="nav-links">
+            <a href="/app/admin.html" class="btn btn-outline">📊 Admin Stats</a>
+            <button id="logout-btn" class="btn btn-danger">Chiqish</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Section 1: Received Offers -->
+        <div style="margin-bottom: 2.5rem;">
+            <h2>Kelib Tushgan Takliflar (Received Offers)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Provider kompaniyalar tomonidan taklif qilingan chegirmalarni ko'rib chiqing va qabul qiling.</p>
+
+            <div class="card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Provider</th>
+                            <th>Sarlavha va Tavsif</th>
+                            <th>Chegirma</th>
+                            <th>Muddati</th>
+                            <th>Harakat</th>
+                        </tr>
+                    </thead>
+                    <tbody id="received-offers-body">
+                        <tr><td colspan="6" style="text-align: center;">Yuklanmoqda...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Active Partnerships & Employees -->
+        <div>
+            <h2>Aktiv Qabul Qilingan Hamkorliklar va QR Kodlar</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Qabul qilingan offerlar bo'yicha o'z xodimlaringizga unique QR-kodlar generatsiya qiling.</p>
+
+            <div id="accepted-partnerships-container">
+                <!-- Dynamic accepted partnerships will load here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Add Employees & Generate Codes -->
+    <div class="modal-overlay" id="employee-modal">
+        <div class="modal" style="max-width: 600px;">
+            <h3 class="card-title">Xodimlarga QR-kod Generatsiya Qilish</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Offer: <strong id="modal-offer-title">...</strong>
+            </p>
+
+            <form id="generate-codes-form">
+                <input type="hidden" id="modal-partnership-id">
+                <div id="employee-inputs-container">
+                    <div class="employee-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" class="form-control emp-name" placeholder="Xodim ismi (masalan: Alisher)" required>
+                        <input type="text" class="form-control emp-id" placeholder="Email / ID (masalan: alisher@company.uz)" required>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-outline" style="margin-top: 0.5rem; width: 100%;" onclick="addEmployeeInputRow()">+ Yana xodim qo'shish</button>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeEmployeeModal()">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary">⚡ Generatsiya Qilish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: View QR Codes -->
+    <div class="modal-overlay" id="view-qr-modal">
+        <div class="modal" style="max-width: 750px;">
+            <h3 class="card-title">Generatsiya Qilingan QR-Kodlar</h3>
+            <div id="qr-codes-display-grid" class="qr-grid">
+                <!-- QR codes cards loaded here -->
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-primary" onclick="closeViewQrModal()">Yopish</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        B2B2C Marketplace &copy; 2025 Partner Dashboard
+    </footer>
+
+    <script src="/app/js/api.js"></script>
+    <script>
+        let currentCompany = null;
+        let myPartnershipsMap = {};
+
+        async function init() {
+            try {
+                currentCompany = await api.getMe();
+                document.getElementById('company-name-header').innerText = currentCompany.name;
+                await loadReceivedOffers();
+                await loadAcceptedPartnerships();
+            } catch (err) {
+                alert(err.message);
+                window.location.href = '/app/index.html';
+            }
+        }
+
+        async function loadReceivedOffers() {
+            const offers = await api.getReceivedOffers();
+            const partnerships = await api.getMyPartnerships();
+
+            myPartnershipsMap = {};
+            partnerships.forEach(p => { myPartnershipsMap[p.offer_id] = p; });
+
+            const tbody = document.getElementById('received-offers-body');
+            if (offers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Mavjud takliflar yo'q</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = offers.map(o => {
+                const existingP = myPartnershipsMap[o.id];
+                let statusBadge = '';
+                let actionBtn = '';
+
+                if (!existingP || existingP.status === 'pending') {
+                    actionBtn = `
+                        <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="respondOffer(${o.id}, 'accepted')">Qabul qilish</button>
+                        <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="respondOffer(${o.id}, 'rejected')">Rad etish</button>
+                    `;
+                } else {
+                    actionBtn = `<span class="badge-status badge-${existingP.status}">${existingP.status.toUpperCase()}</span>`;
+                }
+
+                return `
+                    <tr>
+                        <td>#${o.id}</td>
+                        <td><strong>${o.provider_name}</strong></td>
+                        <td>
+                            <div style="font-weight: 600;">${o.title}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${o.description || ''}</div>
+                        </td>
+                        <td><span style="font-weight:700; color:var(--primary);">${o.discount_value}</span></td>
+                        <td>${o.valid_from} ~ ${o.valid_until}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function respondOffer(offerId, status) {
+            try {
+                await api.respondOffer(offerId, status, 'provider');
+                await loadReceivedOffers();
+                await loadAcceptedPartnerships();
+                alert(`Offer ${status === 'accepted' ? 'qabul qilindi' : 'rad etildi'}!`);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function loadAcceptedPartnerships() {
+            const partnerships = await api.getMyPartnerships();
+            const accepted = partnerships.filter(p => p.status === 'accepted');
+            const container = document.getElementById('accepted-partnerships-container');
+
+            if (accepted.length === 0) {
+                container.innerHTML = `<div class="card" style="text-align: center; color: var(--text-muted);">Hozircha qabul qilingan hamkorliklar mavjud emas. Yuqoridagi takliflardan birini qabul qiling.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            for (const p of accepted) {
+                const codes = await api.getPartnershipCodes(p.id);
+
+                const cardHtml = `
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                            <div>
+                                <h3 style="font-size: 1.1rem; color: var(--primary);">${p.offer_title}</h3>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Provider: <strong>${p.provider_name}</strong> | Chegirma: <strong>${p.discount_value}</strong></p>
+                            </div>
+                            <div>
+                                <button class="btn btn-primary" onclick="openGenerateModal(${p.id}, '${p.offer_title.replace(/'/g, "\\'")}')">+ Xodim Qo'shish</button>
+                                <button class="btn btn-outline" onclick="viewQrCodes(${p.id})">🔍 Barcha QR (${codes.length})</button>
+                            </div>
+                        </div>
+
+                        <h4>Berilgan QR-Kodlar (${codes.length} ta)</h4>
+                        ${codes.length === 0 ? '<p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Hali xodimlarga QR-kod berilmadi.</p>' : `
+                            <table class="data-table" style="margin-top: 0.5rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Xodim Ismi</th>
+                                        <th>Identifier / Email</th>
+                                        <th>Unique Token</th>
+                                        <th>Ishlatish Soni</th>
+                                        <th>Status</th>
+                                        <th>QR Rasm</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${codes.map(c => `
+                                        <tr>
+                                            <td><strong>${c.employee_name}</strong></td>
+                                            <td>${c.employee_identifier}</td>
+                                            <td><code style="font-size:0.8rem; background:#f1f5f9; padding:0.2rem 0.4rem; border-radius:4px;">${c.code}</code></td>
+                                            <td>${c.usage_count} / ${c.max_usage}</td>
+                                            <td><span class="badge-status badge-${c.status}">${c.status}</span></td>
+                                            <td><a href="${c.qr_image_url}" target="_blank" class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.75rem;">🖼️ Ko'rish</a></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            }
+        }
+
+        function openGenerateModal(partnershipId, offerTitle) {
+            document.getElementById('modal-partnership-id').value = partnershipId;
+            document.getElementById('modal-offer-title').innerText = offerTitle;
+            document.getElementById('employee-inputs-container').innerHTML = `
+                <div class="employee-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" class="form-control emp-name" placeholder="Xodim ismi (masalan: Jasur Karimov)" required>
+                    <input type="text" class="form-control emp-id" placeholder="Email / ID (masalan: jasur@company.uz)" required>
+                </div>
+            `;
+            document.getElementById('employee-modal').classList.add('active');
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employee-modal').classList.remove('active');
+        }
+
+        function addEmployeeInputRow() {
+            const container = document.getElementById('employee-inputs-container');
+            const div = document.createElement('div');
+            div.className = 'employee-row';
+            div.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+            div.innerHTML = `
+                <input type="text" class="form-control emp-name" placeholder="Xodim ismi" required>
+                <input type="text" class="form-control emp-id" placeholder="Email / ID" required>
+            `;
+            container.appendChild(div);
+        }
+
+        document.getElementById('generate-codes-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const partnershipId = parseInt(document.getElementById('modal-partnership-id').value);
+            const rows = document.querySelectorAll('#employee-inputs-container .employee-row');
+
+            const employees = [];
+            rows.forEach(r => {
+                const name = r.querySelector('.emp-name').value;
+                const id = r.querySelector('.emp-id').value;
+                if (name && id) employees.push({ employee_name: name, employee_identifier: id });
+            });
+
+            try {
+                await api.generateCodes(partnershipId, employees);
+                closeEmployeeModal();
+                await loadAcceptedPartnerships();
+                alert(`${employees.length} ta xodim uchun QR-kodlar muvaffaqiyatli generatsiya qilindi!`);
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        async function viewQrCodes(partnershipId) {
+            try {
+                const codes = await api.getPartnershipCodes(partnershipId);
+                const displayGrid = document.getElementById('qr-codes-display-grid');
+                if (codes.length === 0) {
+                    displayGrid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">QR-kodlar yo'q</p>`;
+                } else {
+                    displayGrid.innerHTML = codes.map(c => `
+                        <div class="qr-card">
+                            <div class="emp-name">${c.employee_name}</div>
+                            <div class="emp-id">${c.employee_identifier}</div>
+                            <img src="${c.qr_image_url}" alt="QR Code">
+                            <div style="font-size:0.75rem; color:var(--text-muted); word-break:break-all;">${c.code}</div>
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('view-qr-modal').classList.add('active');
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function closeViewQrModal() {
+            document.getElementById('view-qr-modal').classList.remove('active');
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/app/index.html';
+        });
+
+        init();
+    </script>
+</body>
+</html>

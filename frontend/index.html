@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B2C Discount Platform — Kirish</title>
+    <link rel="stylesheet" href="/app/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/app/index.html" class="logo-brand">
+            ⚡ DiscountMarket B2B2C
+        </a>
+        <div class="nav-links">
+            <a href="/app/redeem.html" class="btn btn-outline">📷 Kassir (Scanner)</a>
+            <a href="/app/admin.html" class="btn btn-outline">📊 Admin Stats</a>
+        </div>
+    </header>
+
+    <main class="container" style="max-width: 480px; margin-top: 3rem;">
+        <div class="card">
+            <h2 class="card-title" id="form-title" style="text-align: center;">Tizimga Kirish</h2>
+            <div id="alert-box" style="display:none; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email manzil</label>
+                    <input type="email" id="login-email" class="form-control" required placeholder="masalan: coffee@provider.com">
+                </div>
+                <div class="form-group">
+                    <label>Parol</label>
+                    <input type="password" id="login-password" class="form-control" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Tizimga kirish</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" style="display: none;">
+                <div class="form-group">
+                    <label>Kompaniya nomi</label>
+                    <input type="text" id="reg-name" class="form-control" required placeholder="masalan: Coffee House">
+                </div>
+                <div class="form-group">
+                    <label>Email manzil</label>
+                    <input type="email" id="reg-email" class="form-control" required placeholder="company@domain.uz">
+                </div>
+                <div class="form-group">
+                    <label>Parol</label>
+                    <input type="password" id="reg-password" class="form-control" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Kompaniya turi</label>
+                    <select id="reg-type" class="form-control">
+                        <option value="provider">Provider (Chegirma/Promo taqdim etuvchi)</option>
+                        <option value="partner">Partner (Xodimlariga chegirma oluvchi)</option>
+                        <option value="both">Ikkalasi ham (Both)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Ro'yxatdan o'tish</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+                <span id="toggle-msg">Akkauntingiz yo'qmi?</span>
+                <a href="#" id="toggle-btn" style="color: var(--primary); font-weight: 600; text-decoration: none;">Ro'yxatdan o'tish</a>
+            </div>
+        </div>
+
+        <!-- Quick Demo Accounts -->
+        <div class="card" style="background: #f1f5f9;">
+            <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">⚡ Tezkor Demo Akkauntlar:</h4>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;" onclick="fillLogin('coffee@provider.com')">Provider: Coffee House</button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;" onclick="fillLogin('hr@hamkorbank.com')">Partner: Hamkorbank</button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;" onclick="fillLogin('hr@itpark.uz')">Partner: IT Park</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        B2B2C Marketplace &copy; 2025 Hackathon MVP
+    </footer>
+
+    <script src="/app/js/api.js"></script>
+    <script>
+        let isLogin = true;
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const formTitle = document.getElementById('form-title');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const toggleMsg = document.getElementById('toggle-msg');
+        const alertBox = document.getElementById('alert-box');
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+            alertBox.style.display = 'none';
+            if (isLogin) {
+                formTitle.innerText = "Tizimga Kirish";
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                toggleMsg.innerText = "Akkauntingiz yo'qmi?";
+                toggleBtn.innerText = "Ro'yxatdan o'tish";
+            } else {
+                formTitle.innerText = "Ro'yxatdan O'tish";
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                toggleMsg.innerText = "Akkountingiz bormi?";
+                toggleBtn.innerText = "Tizimga kirish";
+            }
+        });
+
+        function showAlert(msg, isError = true) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = isError ? '#fee2e2' : '#d1fae5';
+            alertBox.style.color = isError ? '#991b1b' : '#065f46';
+            alertBox.innerText = msg;
+        }
+
+        function fillLogin(email) {
+            document.getElementById('login-email').value = email;
+            document.getElementById('login-password').value = 'password123';
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await api.login(email, password);
+                const me = await api.getMe();
+                if (me.company_type === 'provider') {
+                    window.location.href = '/app/provider-dashboard.html';
+                } else {
+                    window.location.href = '/app/partner-dashboard.html';
+                }
+            } catch (err) {
+                showAlert(err.message);
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const companyData = {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                company_type: document.getElementById('reg-type').value
+            };
+            try {
+                await api.register(companyData);
+                showAlert("Muvaffaqiyatli ro'yxatdan o'tildi! Endi kirishingiz mumkin.", false);
+                toggleBtn.click();
+            } catch (err) {
+                showAlert(err.message);
+            }
+        });
+    </script>
+</body>
+</html>
