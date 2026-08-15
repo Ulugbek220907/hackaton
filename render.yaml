@@ -18,4 +18,3 @@ databases:
   - name: discount-db
     databaseName: discount_platform
     user: discount_user
-    plan: starter

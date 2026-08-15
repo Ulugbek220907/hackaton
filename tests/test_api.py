@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.database import Base, engine, SessionLocal
 from backend.seed import seed_data
 
 client = TestClient(app)
@@ -9,7 +8,7 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def setup_db():
-    seed_data()
+    seed_data(force=True)
     yield
 
 
